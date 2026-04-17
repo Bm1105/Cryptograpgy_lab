@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Cryptography Lab</title>
+<style>
+body{
+    font-family: Arial;
+    background: linear-gradient(120deg,#141E30,#243B55);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin:0;
+}
+.box{
+    background:#fff;
+    padding:25px;
+    width:680px;
+    border-radius:15px;
+    box-shadow:0 12px 30px rgba(0,0,0,.3);
+}
+button{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+    border:none;
+    border-radius:8px;
+    background:#243B55;
+    color:#fff;
+    font-size:15px;
+    cursor:pointer;
+}
+button:hover{background:#1a2a3f;}
+input{
+    width:100%;
+    padding:8px;
+    margin:5px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+.hidden{display:none;}
+.output{
+    margin-top:10px;
+    background:#f2f2f2;
+    padding:12px;
+    border-radius:8px;
+    font-size:14px;
+    white-space:pre-line;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+
+<div id="menu">
+<h2>CRYPTOGRAPHY LAB</h2>
+<button onclick="show('gcd')">GCD</button>
+<button onclick="show('euclid')">Euclidean GCD</button>
+<button onclick="show('miller')">Miller–Rabin Test</button>
+</div>
+
+<!-- GCD -->
+<div id="gcd" class="hidden">
+<h3>GCD (Basic Method)</h3>
+<input id="gcdA" type="number" placeholder="Enter first number">
+<input id="gcdB" type="number" placeholder="Enter second number">
+<button onclick="basicGCD()">Find GCD</button>
+<button onclick="back()">Back</button>
+</div>
+
+<!-- EUCLIDEAN -->
+<div id="euclid" class="hidden">
+<h3>Euclidean Algorithm</h3>
+<input id="eA" type="number" placeholder="Enter first number">
+<input id="eB" type="number" placeholder="Enter second number">
+<button onclick="euclideanGCD()">Find GCD</button>
+<button onclick="back()">Back</button>
+</div>
+
+<!-- MILLER -->
+<div id="miller" class="hidden">
+<h3>Miller–Rabin Primality Test</h3>
+<input id="mNum" type="number" placeholder="Enter number">
+<button onclick="millerRabin()">Test Prime</button>
+<button onclick="back()">Back</button>
+</div>
+
+<div class="output" id="result"></div>
+
+</div>
+
+<script>
+function show(id){
+    menu.style.display="none";
+    gcd.style.display=euclid.style.display=miller.style.display="none";
+    document.getElementById(id).style.display="block";
+    result.innerText="";
+}
+function back(){
+    menu.style.display="block";
+    gcd.style.display=euclid.style.display=miller.style.display="none";
+    result.innerText="";
+}
+
+/* ========= BASIC GCD ========= */
+function basicGCD(){
+    let a = +gcdA.value;
+    let b = +gcdB.value;
+    let steps = "Checking common divisors:\n";
+    let gcd = 1;
+
+    for(let i=1;i<=Math.min(a,b);i++){
+        if(a%i===0 && b%i===0){
+            gcd=i;
+            steps+=i+" divides both\n";
+        }
+    }
+    result.innerText = steps + "\nGCD = " + gcd;
+}
+
+/* ========= EUCLIDEAN GCD ========= */
+function euclideanGCD(){
+    let a = +eA.value;
+    let b = +eB.value;
+    let steps = "Using Euclidean Algorithm:\n";
+
+    while(b !== 0){
+        steps += `${a} = ${b} × ${Math.floor(a/b)} + ${a%b}\n`;
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    result.innerText = steps + "\nGCD = " + a;
+}
+
+/* ========= MILLER–RABIN ========= */
+function power(a, d, n){
+    let res = 1;
+    a %= n;
+    while(d > 0){
+        if(d & 1) res = (res * a) % n;
+        a = (a * a) % n;
+        d >>= 1;
+    }
+    return res;
+}
+
+function millerTest(d, n){
+    let a = 2 + Math.floor(Math.random()*(n-4));
+    let x = power(a, d, n);
+    if(x === 1 || x === n-1) return true;
+
+    while(d !== n-1){
+        x = (x * x) % n;
+        d *= 2;
+        if(x === 1) return false;
+        if(x === n-1) return true;
+    }
+    return false;
+}
+
+function millerRabin(){
+    let n = +mNum.value;
+    if(n <= 1) { result.innerText="Not Prime"; return; }
+    if(n <= 3) { result.innerText="Prime"; return; }
+    if(n % 2 === 0){ result.innerText="Composite"; return; }
+
+    let d = n-1;
+    while(d % 2 === 0) d /= 2;
+
+    let steps = "Miller–Rabin Steps:\n";
+    for(let i=0;i<5;i++){
+        let res = millerTest(d,n);
+        steps += "Test "+(i+1)+": "+(res?"Pass":"Fail")+"\n";
+        if(!res){
+            result.innerText = steps + "\nComposite Number";
+            return;
+        }
+    }
+    result.innerText = steps + "\nProbably Prime";
+}
+</script>
+
+</body>
+</html>
+...
