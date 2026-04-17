@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Cryptography Lab</title>
+<style>
+body{
+    font-family: Arial;
+    background: linear-gradient(120deg,#141E30,#243B55);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin:0;
+}
+.box{
+    background:#fff;
+    padding:25px;
+    width:680px;
+    border-radius:15px;
+    box-shadow:0 12px 30px rgba(0,0,0,.3);
+}
+button{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+    border:none;
+    border-radius:8px;
+    background:#243B55;
+    color:#fff;
+    font-size:15px;
+    cursor:pointer;
+}
+button:hover{background:#1a2a3f;}
+input{
+    width:100%;
+    padding:8px;
+    margin:5px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+.hidden{display:none;}
+.output{
+    margin-top:10px;
+    background:#f2f2f2;
+    padding:12px;
+    border-radius:8px;
+    font-size:14px;
+    white-space:pre-line;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+
+<div id="menu">
+<h2>CRYPTOGRAPHY LAB</h2>
+<button onclick="show('affine')">Affine Cipher</button>
+<button onclick="show('vigenere')">Vigenère Cipher</button>
+<button onclick="show('playfair')">Playfair Cipher</button>
+</div>
+
+<!-- AFFINE -->
+<div id="affine" class="hidden">
+<h3>Affine Cipher</h3>
+<input id="aText" placeholder="Text (UPPERCASE)">
+<input id="aKey" type="number" placeholder="Key a (coprime with 26)">
+<input id="bKey" type="number" placeholder="Key b">
+<button onclick="affineEncrypt()">Encrypt</button>
+<button onclick="affineDecrypt()">Decrypt</button>
+<button onclick="back()">Back</button>
+</div>
+
+<!-- VIGENERE -->
+<div id="vigenere" class="hidden">
+<h3>Vigenère Cipher</h3>
+<input id="vText" placeholder="Text (UPPERCASE)">
+<input id="vKey" placeholder="Key (UPPERCASE)">
+<button onclick="vigEncrypt()">Encrypt</button>
+<button onclick="vigDecrypt()">Decrypt</button>
+<button onclick="back()">Back</button>
+</div>
+
+<!-- PLAYFAIR -->
+<div id="playfair" class="hidden">
+<h3>Playfair Cipher</h3>
+<input id="pText" placeholder="Text (UPPERCASE)">
+<input id="pKey" placeholder="Key (UPPERCASE)">
+<button onclick="pfEncrypt()">Encrypt</button>
+<button onclick="pfDecrypt()">Decrypt</button>
+<button onclick="back()">Back</button>
+</div>
+
+<div class="output" id="result"></div>
+
+</div>
+
+<script>
+function show(id){
+    menu.style.display="none";
+    affine.style.display=vigenere.style.display=playfair.style.display="none";
+    document.getElementById(id).style.display="block";
+    result.innerText="";
+}
+function back(){
+    menu.style.display="block";
+    affine.style.display=vigenere.style.display=playfair.style.display="none";
+    result.innerText="";
+}
+
+/* ========== AFFINE ========== */
+function modInv(a){
+    for(let i=1;i<26;i++) if((a*i)%26===1) return i;
+    return -1;
+}
+function affineEncrypt(){
+    let t=aText.value.toUpperCase();
+    let a=+aKey.value, b=+bKey.value;
+    let out="", steps="P → (aP+b)%26 → C\n";
+    for(let c of t){
+        if(c>='A'&&c<='Z'){
+            let p=c.charCodeAt(0)-65;
+            let enc=(a*p+b)%26;
+            out+=String.fromCharCode(enc+65);
+            steps+=`${c} → (${a}×${p}+${b})%26 → ${String.fromCharCode(enc+65)}\n`;
+        }
+    }
+    result.innerText=steps+"\nCipher Text: "+out;
+}
+function affineDecrypt(){
+    let t=aText.value.toUpperCase();
+    let a=+aKey.value, b=+bKey.value;
+    let inv=modInv(a);
+    if(inv==-1){ result.innerText="Invalid a (not coprime with 26)"; return;}
+    let out="", steps="C → a⁻¹(C−b)%26 → P\n";
+    for(let c of t){
+        if(c>='A'&&c<='Z'){
+            let y=c.charCodeAt(0)-65;
+            let dec=(inv*(y-b+26))%26;
+            out+=String.fromCharCode(dec+65);
+            steps+=`${c} → ${String.fromCharCode(dec+65)}\n`;
+        }
+    }
+    result.innerText=steps+"\nPlain Text: "+out;
+}
+
+/* ========== VIGENERE ========== */
+function vigEncrypt(){
+    let t=vText.value.toUpperCase();
+    let k=vKey.value.toUpperCase();
+    let out="",steps="",keyStream="";
+    for(let i=0;i<t.length;i++) keyStream+=k[i%k.length];
+    steps+="Plaintext : "+t+"\nKey       : "+keyStream+"\n\n";
+    steps+="P  K  (P+K)%26\n";
+    for(let i=0;i<t.length;i++){
+        let p=t.charCodeAt(i)-65;
+        let kk=keyStream.charCodeAt(i)-65;
+        let c=(p+kk)%26;
+        out+=String.fromCharCode(c+65);
+        steps+=`${t[i]}  ${keyStream[i]}   ${c}\n`;
+    }
+    result.innerText=steps+"\nCipher Text: "+out;
+}
+function vigDecrypt(){
+    let t=vText.value.toUpperCase();
+    let k=vKey.value.toUpperCase();
+    let out="",steps="",keyStream="";
+    for(let i=0;i<t.length;i++) keyStream+=k[i%k.length];
+    steps+="Ciphertext : "+t+"\nKey        : "+keyStream+"\n\n";
+    steps+="C  K  (C−K)%26\n";
+    for(let i=0;i<t.length;i++){
+        let c=t.charCodeAt(i)-65;
+        let kk=keyStream.charCodeAt(i)-65;
+        let p=(c-kk+26)%26;
+        out+=String.fromCharCode(p+65);
+        steps+=`${t[i]}  ${keyStream[i]}   ${p}\n`;
+    }
+    result.innerText=steps+"\nPlain Text: "+out;
+}
+
+/* ========== PLAYFAIR ========== */
+function buildMatrix(key){
+    key=key.replace(/J/g,"I");
+    let m=[],u={};
+    for(let c of key) if(!u[c]&&c>='A'){m.push(c);u[c]=1;}
+    for(let i=65;i<=90;i++){
+        let c=String.fromCharCode(i);
+        if(c!="J"&&!u[c]) m.push(c);
+    }
+    return m;
+}
+function pos(m,c){let i=m.indexOf(c);return{r:Math.floor(i/5),c:i%5};}
+function prep(t){
+    t=t.replace(/J/g,"I"); let r="";
+    for(let i=0;i<t.length;i++){
+        r+=t[i];
+        if(t[i]==t[i+1]) r+="X";
+    }
+    if(r.length%2) r+="X";
+    return r;
+}
+function showMatrix(m){
+    let s="Playfair Matrix:\n";
+    for(let i=0;i<25;i++){
+        s+=m[i]+" ";
+        if(i%5==4) s+="\n";
+    }
+    return s+"\n";
+}
+function pfEncrypt(){
+    let t=prep(pText.value.toUpperCase());
+    let m=buildMatrix(pKey.value.toUpperCase());
+    let out="",steps=showMatrix(m)+"Pairs → Result\n";
+    for(let i=0;i<t.length;i+=2){
+        let a=pos(m,t[i]),b=pos(m,t[i+1]);
+        let x,y;
+        if(a.r==b.r){x=m[a.r*5+(a.c+1)%5];y=m[b.r*5+(b.c+1)%5];}
+        else if(a.c==b.c){x=m[(a.r+1)%5*5+a.c];y=m[(b.r+1)%5*5+b.c];}
+        else{x=m[a.r*5+b.c];y=m[b.r*5+a.c];}
+        out+=x+y; steps+=t[i]+t[i+1]+" → "+x+y+"\n";
+    }
+    result.innerText=steps+"\nCipher Text: "+out;
+}
+function pfDecrypt(){
+    let t=pText.value.toUpperCase();
+    let m=buildMatrix(pKey.value.toUpperCase());
+    let out="",steps=showMatrix(m)+"Pairs → Result\n";
+    for(let i=0;i<t.length;i+=2){
+        let a=pos(m,t[i]),b=pos(m,t[i+1]);
+        let x,y;
+        if(a.r==b.r){x=m[a.r*5+(a.c+4)%5];y=m[b.r*5+(b.c+4)%5];}
+        else if(a.c==b.c){x=m[(a.r+4)%5*5+a.c];y=m[(b.r+4)%5*5+b.c];}
+        else{x=m[a.r*5+b.c];y=m[b.r*5+a.c];}
+        out+=x+y; steps+=t[i]+t[i+1]+" → "+x+y+"\n";
+    }
+    result.innerText=steps+"\nPlain Text: "+out;
+}
+</script>
+
+</body>
+</html>
