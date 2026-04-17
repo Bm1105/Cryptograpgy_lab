@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>RSA & DH Step-by-Step Demo</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 15px; line-height: 1.5; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .hidden { display: none; }
+    .row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+    .input-group { flex: 1; min-width: 150px; }
+    label { display: block; font-size: 0.9em; font-weight: bold; margin-bottom: 5px; color: #444; }
+    input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; transition: background 0.2s; }
+    button:hover { background: #0056b3; }
+    button.back { background: #6c757d; }
+    pre { background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e9ecef; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.95em; }
+    .step-title { color: #007bff; font-weight: bold; margin-top: 10px; display: block; }
+    .math { font-style: italic; color: #d63384; }
+  </style>
+</head>
+<body>
+
+  <h1>Cryptography Step-by-Step Demo</h1>
+
+  <!-- HOME SCREEN -->
+  <div id="home" class="card">
+    <h2>Choose an Algorithm to Explore</h2>
+    <p>Select an algorithm below to see the mathematical steps involved in key generation and exchange.</p>
+    <div class="row">
+      <button onclick="show('rsaScreen')">RSA Key Generation</button>
+      <button onclick="show('dhScreen')">Diffie–Hellman Exchange</button>
+    </div>
+  </div>
+
+  <!-- RSA SCREEN -->
+  <div id="rsaScreen" class="card hidden">
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <h2 style="margin:0;">RSA Key Generation</h2>
+      <button class="back" onclick="show('home')">Back to Home</button>
+    </div>
+    
+    <div class="row">
+      <div class="input-group">
+        <label>Prime p</label>
+        <input id="rsaP" type="number" value="61">
+      </div>
+      <div class="input-group">
+        <label>Prime q</label>
+        <input id="rsaQ" type="number" value="53">
+      </div>
+    </div>
+
+    <div class="row">
+      <button onclick="runRsa(false)">Calculate Steps</button>
+      <button onclick="runRsa(true)" style="background:#28a745;">Random Small Primes</button>
+    </div>
+
+    <pre id="rsaOut">Click "Calculate Steps" to begin...</pre>
+  </div>
+
+  <!-- DH SCREEN -->
+  <div id="dhScreen" class="card hidden">
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <h2 style="margin:0;">Diffie–Hellman Key Exchange</h2>
+      <button class="back" onclick="show('home')">Back to Home</button>
+    </div>
+
+    <div class="row">
+      <div class="input-group"><label>Prime (p)</label><input id="dhP" type="number" value="23"></div>
+      <div class="input-group"><label>Generator (g)</label><input id="dhG" type="number" value="5"></div>
+    </div>
+    <div class="row">
+      <div class="input-group"><label>Alice Secret (a)</label><input id="dhA" type="number" value="6"></div>
+      <div class="input-group"><label>Bob Secret (b)</label><input id="dhB" type="number" value="15"></div>
+    </div>
+
+    <div class="row">
+      <button onclick="runDh(false)">Simulate Exchange</button>
+      <button onclick="runDh(true)" style="background:#28a745;">Randomize Secrets</button>
+    </div>
+
+    <pre id="dhOut">Click "Simulate Exchange" to begin...</pre>
+  </div>
+
+<script>
+/* --- Math Utility Functions --- */
+const toBI = n => BigInt(n);
+const gcd = (a, b) => b === 0n ? a : gcd(b, a % b);
+
+function modInverse(e, phi) {
+  let [m0, y, x] = [phi, 0n, 1n];
+  if (phi === 1n) return 0n;
+  while (e > 1n) {
+    let q = e / phi;
+    let t = phi;
+    phi = e % phi; e = t;
+    t = y;
+    y = x - q * y; x = t;
+  }
+  return x < 0n ? x + m0 : x;
+}
+
+function modPow(base, exp, mod) {
+  let res = 1n; base %= mod;
+  while (exp > 0n) {
+    if (exp % 2n === 1n) res = (res * base) % mod;
+    base = (base * base) % mod;
+    exp /= 2n;
+  }
+  return res;
+}
+
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+  return true;
+}
+
+function getPrime() {
+  let p; do { p = Math.floor(Math.random() * 90) + 10; } while (!isPrime(p));
+  return p;
+}
+
+function show(id) {
+  ['home', 'rsaScreen', 'dhScreen'].forEach(s => document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* --- RSA Implementation --- */
+function runRsa(isRandom) {
+  const out = document.getElementById('rsaOut');
+  try {
+    let p = isRandom ? BigInt(getPrime()) : BigInt(document.getElementById('rsaP').value);
+    let q = isRandom ? BigInt(getPrime()) : BigInt(document.getElementById('rsaQ').value);
+    if (isRandom) { 
+      document.getElementById('rsaP').value = p; 
+      document.getElementById('rsaQ').value = q; 
+    }
+
+    if (!isPrime(Number(p)) || !isPrime(Number(q))) throw new Error("p and q must be prime.");
+
+    const n = p * q;
+    const phi = (p - 1n) * (q - 1n);
+    const e = 65537n < phi && gcd(65537n, phi) === 1n ? 65537n : 17n;
+    const d = modInverse(e, phi);
+
+    out.innerHTML = `Step 1: Multiply primes to get Modulus (n)
+   n = p * q = ${p} * ${q} = <b>${n}</b>
+
+Step 2: Calculate Euler's Totient (phi)
+   φ(n) = (p-1)(q-1) = (${p}-1) * (${q}-1) = <b>${phi}</b>
+
+Step 3: Choose Public Exponent (e)
+   e must be 1 < e < φ(n) and coprime to φ(n).
+   Selected e = <b>${e}</b> (GCD(${e}, ${phi}) = ${gcd(e, phi)})
+
+Step 4: Calculate Private Exponent (d)
+   d is the modular inverse: (d * e) ≡ 1 (mod φ(n))
+   d = <b>${d}</b>
+
+Step 5: Verify Keys
+   Public Key (e, n): (${e}, ${n})
+   Private Key (d, n): (${d}, ${n})
+   Verification: (${e} * ${d}) mod ${phi} = <b>${(e * d) % phi}</b> (must be 1)`;
+  } catch (err) { out.textContent = "Error: " + err.message; }
+}
+
+/* --- DH Implementation --- */
+function runDh(isRandom) {
+  const out = document.getElementById('dhOut');
+  let p = BigInt(document.getElementById('dhP').value);
+  let g = BigInt(document.getElementById('dhG').value);
+  let a = isRandom ? BigInt(Math.floor(Math.random() * Number(p-2n)) + 2) : BigInt(document.getElementById('dhA').value);
+  let b = isRandom ? BigInt(Math.floor(Math.random() * Number(p-2n)) + 2) : BigInt(document.getElementById('dhB').value);
+
+  if (isRandom) {
+    document.getElementById('dhA').value = a;
+    document.getElementById('dhB').value = b;
+  }
+
+  const A = modPow(g, a, p);
+  const B = modPow(g, b, p);
+  const sA = modPow(B, a, p);
+  const sB = modPow(A, b, p);
+
+  out.innerHTML = `Step 1: Alice computes Public Value (A)
+   A = g^a mod p = ${g}^${a} mod ${p} = <b>${A}</b>
+
+Step 2: Bob computes Public Value (B)
+   B = g^b mod p = ${g}^${b} mod ${p} = <b>${B}</b>
+
+Step 3: Alice computes Shared Secret (s) using Bob's B
+   s = B^a mod p = ${B}^${a} mod ${p} = <b>${sA}</b>
+
+Step 4: Bob computes Shared Secret (s) using Alice's A
+   s = A^b mod p = ${A}^${b} mod ${p} = <b>${sB}</b>
+
+Conclusion:
+   Both parties share the secret: <b>${sA}</b>
+   Even though only A and B were sent publicly!`;
+}
+</script>
+</body>
+</html>
